@@ -1,10 +1,17 @@
 from sqlalchemy.orm import Session
 from back.models import Usuario, Motorista,  Veiculo, Saida
 from back.schemas import * 
+from .utils.security import hash_senha
+
 
 # CRUD de Usuário
 def create_usuario(db: Session, usuario_data: UsuarioCreate):
-    usuario = Usuario(**usuario_data.dict())  # Usando o schema para transformar dados
+    hashed = hash_senha(usuario_data.senha)
+    usuario = Usuario(
+        nome=usuario_data.nome,
+        email=usuario_data.email,
+        senha=hashed
+    )
     db.add(usuario)
     db.commit()
     db.refresh(usuario)

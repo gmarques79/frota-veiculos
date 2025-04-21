@@ -91,3 +91,7 @@ class SaidaResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class LoginRequest(BaseModel):
+    email: str
+    senha: str
