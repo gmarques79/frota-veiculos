@@ -10,15 +10,19 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setErro("");
 
     try {
       const resposta = await fetch("http://localhost:8000/login", {
@@ -33,9 +37,11 @@ export default function Login() {
       }
 
       await resposta.json();
-      router.push("/dashboard");
+      router.push("/dashboard/home");
     } catch (error: any) {
       setErro(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,11 +70,21 @@ export default function Login() {
               {erro && <p className="text-red-500 text-sm">{erro}</p>}
 
               <div className="flex gap-2">
-                <Button type="submit">Entrar</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                      Carregando...
+                    </>
+                  ) : (
+                    "Entrar"
+                  )}
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => router.push("/cadastro")}
+                  disabled={isLoading}
                 >
                   Cadastrar
                 </Button>

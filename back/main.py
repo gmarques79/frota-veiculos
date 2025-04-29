@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from back.database import Base, engine
-from back.routes import veiculo, motorista, saidas, usuario, auth  
+from back.routes import veiculo, motorista, saidas, usuario, auth, dashboard
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -12,7 +12,7 @@ app = FastAPI(title="API de Controle de Frota")
 # Habilitar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # ou ["*"] para permitir todos (não recomendado em produção)
+    allow_origins=["http://localhost:3000"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -24,6 +24,8 @@ app.include_router(motorista.router)
 app.include_router(veiculo.router)
 app.include_router(saidas.router)
 app.include_router(auth.router)
+app.include_router(dashboard.router)
+
 
 
 @app.get("/")

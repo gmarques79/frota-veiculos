@@ -81,9 +81,9 @@ class SaidaCreate(BaseModel):
 # Schema para a resposta de uma saída (registro de viagem)
 class SaidaResponse(BaseModel):
     idsaida: int
-    id_veiculo: int
-    id_motorista: int
-    id_usuario: int
+    veiculo: VeiculoResponse
+    motorista: MotoristaResponse
+    id_usuario: UsuarioResponse  
     saida_prevista: datetime
     chegada_prevista: datetime
     saida_real: Optional[datetime] = None
@@ -95,3 +95,15 @@ class SaidaResponse(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     senha: str
+
+class EstatisticasVeiculo(BaseModel):
+    ativos: int
+    inativos: int
+
+class EstatisticasMotorista(BaseModel):
+    ativos: int
+    inativos: int
+
+class EstatisticasResponse(BaseModel):
+    carros: EstatisticasVeiculo
+    motoristas: EstatisticasMotorista

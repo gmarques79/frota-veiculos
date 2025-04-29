@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, TIMESTAMP
+from sqlalchemy.orm import relationship
 from back.database import Base
 
 class Usuario(Base):
@@ -32,11 +33,15 @@ class Saida(Base):
     __tablename__ = "saida"
 
     idsaida = Column(Integer, primary_key=True, index=True)
-    id_veiculo = Column(Integer, ForeignKey("frota.veiculo.idveiculo"), nullable=False)
-    id_motorista = Column(Integer, ForeignKey("frota.motorista.idmotorista"), nullable=False)
-    id_usuario = Column(Integer, ForeignKey("frota.usuario.idusuario"), nullable=False)
+    id_veiculo = Column(Integer, ForeignKey("veiculo.idveiculo"), nullable=False)
+    id_motorista = Column(Integer, ForeignKey("motorista.idmotorista"), nullable=False)
+    id_usuario = Column(Integer, ForeignKey("usuario.idusuario"), nullable=False)
 
     saida_prevista = Column(TIMESTAMP)
     chegada_prevista = Column(TIMESTAMP)
     saida_real = Column(TIMESTAMP)
     chegada_real = Column(TIMESTAMP)
+
+    veiculo = relationship("Veiculo")  
+    motorista = relationship("Motorista")  
+    usuario = relationship("Usuario")  
