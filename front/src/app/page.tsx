@@ -36,7 +36,8 @@ export default function Login() {
         throw new Error(data.detail || "Erro no login");
       }
 
-      await resposta.json();
+      const data = await resposta.json();
+      localStorage.setItem("token", data.access_token);
       router.push("/dashboard/home");
     } catch (error: any) {
       setErro(error.message);

@@ -20,9 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-
 export type Condutor = {
-  id: number;
+  idmotorista: number;
   nome: string;
   cpf: string;
   cnh: string;

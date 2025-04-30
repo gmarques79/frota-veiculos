@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import {
   Table,
   TableBody,
@@ -20,9 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-
 export type Veiculo = {
-  id: number;
+  idveiculo: number;
   modelo: string;
   placa: string;
   marca: string;
@@ -44,7 +45,7 @@ export default function VeiculosDashboard() {
 
   useEffect(() => {
     carregarVeiculos();
-  }, []);
+  }, [])
 
   const cadastrarVeiculo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +59,7 @@ export default function VeiculosDashboard() {
 
     await fetch("http://localhost:8000/veiculos", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json" },
       body: JSON.stringify(novoVeiculo),
     });
 
