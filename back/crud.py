@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from back.models import Usuario, Motorista,  Veiculo, Saida
 from back.schemas import * 
 from .utils.security import hash_senha
+from sqlalchemy.orm import joinedload
+
 
 
 # CRUD de Usuário
@@ -118,7 +120,17 @@ def create_saida(db: Session, saida_data: SaidaCreate):
     db.add(saida)
     db.commit()
     db.refresh(saida)
-    return saida
+
+    saida_completa = db.query(Saida)\
+        .options(
+            joinedload(Saida.veiculo),
+            joinedload(Saida.motorista),
+            joinedload(Saida.usuario)
+        )\
+        .filter(Saida.idsaida == saida.idsaida)\
+        .first()
+
+    return saida_completa
 
 def get_saida(db: Session, saida_id: int):
     return db.query(Saida).filter(Saida.idsaida == saida_id).first()
@@ -136,6 +148,9 @@ def update_saida(db: Session, saida_id: int, saida_data: SaidaCreate):
         saida.chegada_prevista = saida_data.chegada_prevista
         saida.saida_real = saida_data.saida_real
         saida.chegada_real = saida_data.chegada_real
+        saida.km_saida = saida_data.km_saida
+        saida.km_chegada = saida_data.km_chegada
+
         db.commit()
         db.refresh(saida)
     return saida

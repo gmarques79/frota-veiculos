@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   Table,
@@ -121,9 +120,9 @@ export default function VeiculosDashboard() {
         <TableBody>
           {veiculos.map((veiculo) => (
             <TableRow key={veiculo.idveiculo}>
-              <TableCell>{veiculo.modelo}</TableCell>
-              <TableCell>{veiculo.placa}</TableCell>
-              <TableCell>{veiculo.marca}</TableCell>
+              <TableCell>{veiculo.modelo.toUpperCase()}</TableCell>
+              <TableCell>{veiculo.placa.toUpperCase()}</TableCell>
+              <TableCell>{veiculo.marca.toUpperCase()}</TableCell>
               <TableCell>{veiculo.ativo ? "Inativo" : "Ativo"}</TableCell>
             </TableRow>
           ))}

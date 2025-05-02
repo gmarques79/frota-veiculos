@@ -74,6 +74,8 @@ class SaidaCreate(BaseModel):
     chegada_prevista: datetime
     saida_real: Optional[datetime] = None
     chegada_real: Optional[datetime] = None
+    km_saida: Optional[str] = None
+    km_chegada: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -83,11 +85,13 @@ class SaidaResponse(BaseModel):
     idsaida: int
     veiculo: VeiculoResponse
     motorista: MotoristaResponse
-    id_usuario: UsuarioResponse  
+    usuario: UsuarioResponse  
     saida_prevista: datetime
     chegada_prevista: datetime
     saida_real: Optional[datetime] = None
     chegada_real: Optional[datetime] = None
+    km_saida: Optional[str] = None
+    km_chegada: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -95,6 +99,9 @@ class SaidaResponse(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     senha: str
+
+    class Config:
+        extra = "forbid"
 
 class EstatisticasVeiculo(BaseModel):
     ativos: int

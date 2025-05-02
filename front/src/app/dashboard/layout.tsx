@@ -1,14 +1,14 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner"
 import { motion } from "framer-motion"; // já vem pronto com shadcn
 
 const menuItems = [
@@ -25,16 +25,21 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const [carregando, setCarregando] = useState(true);
+
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
-  }, [status]);
+    const token = localStorage.getItem("token");
 
-  if (status === "loading") return <p>Carregando sessão...</p>;
+    if (!token) {
+      router.push("/");
+    } else {
+      setCarregando(false);
+    }
+  }, [router]);
+
+  if (carregando) return <p>Carregando...</p>;
 
   return (
     <div className="flex min-h-screen">
@@ -75,6 +80,7 @@ export default function DashboardLayout({
         transition={{ duration: 0.5 }}
       >
         {children}
+        <Toaster /> {/* Aqui o Toast será montado */}
       </motion.main>
     </div>
   );

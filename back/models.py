@@ -41,6 +41,8 @@ class Saida(Base):
     chegada_prevista = Column(TIMESTAMP)
     saida_real = Column(TIMESTAMP)
     chegada_real = Column(TIMESTAMP)
+    km_saida = Column(String(6))
+    km_chegada = Column(String(6))
 
     veiculo = relationship("Veiculo")  
     motorista = relationship("Motorista")  

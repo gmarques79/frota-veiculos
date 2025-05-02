@@ -11,6 +11,8 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -30,7 +32,6 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, senha }),
       });
-
       if (!resposta.ok) {
         const data = await resposta.json();
         throw new Error(data.detail || "Erro no login");
