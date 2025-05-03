@@ -1,22 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { DataTable } from "@/components/genericTable";
+import { CrudDialog } from "@/components/crudDialog";
+import  LabeledInput  from "@/components/labeledinput";
+import  LabeledSelect  from "@/components/labeledSelect";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
-
-
-import { Veiculo } from "../veiculos/page";
-import { Condutor } from "../condutores/page";
-
+import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import base64Logo from "@/lib/logo";
+
+import type { Veiculo } from "../veiculos/page";
+import type { Condutor } from "../condutores/page";
 
 type Saida = {
   idsaida: number;
@@ -35,12 +31,9 @@ type Saida = {
   km_chegada: string | null;
 };
 
-
 const gerarPDF = (saida: Saida) => {
-  console.log(saida)
   const doc = new jsPDF();
-
-  const logoBase64 = base64Logo; // sua imagem convertida
+  const logoBase64 = base64Logo;
 
   // Logo e título
   doc.addImage(logoBase64, "PNG", 150, 10, 40, 20);
@@ -76,70 +69,91 @@ export default function SaidasDashboard() {
   const [saidas, setSaidas] = useState<Saida[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [motoristas, setMotoristas] = useState<Condutor[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // estados para nova saída
-  const [idVeiculo, setIdVeiculo] = useState<number | undefined>();
-  const [idMotorista, setIdMotorista] = useState<number | undefined>();
+  const [idVeiculo, setIdVeiculo] = useState<number>();
+  const [idMotorista, setIdMotorista] = useState<number>();
   const [saidaPrevista, setSaidaPrevista] = useState("");
   const [chegadaPrevista, setChegadaPrevista] = useState("");
-  const [saidaReal, setSaidaReal] = useState<string | undefined>("");
-  const [chegadaReal, setChegadaReal] = useState<string | undefined>("");
-  const [km_saida, setKmSaida] = useState("");
-  const [km_chegada, setKmChegada] = useState("");
-  
+  const [saidaReal, setSaidaReal] = useState("");
+  const [chegadaReal, setChegadaReal] = useState("");
+  const [kmSaida, setKmSaida] = useState("");
+  const [kmChegada, setKmChegada] = useState("");
 
-  const carregarSaidas = () => {
-    fetch("http://localhost:8000/saidas")
-      .then((res) => res.json())
-      .then(setSaidas)
-      .catch((err) => console.error("Erro ao buscar saídas", err));
-  };
+  const carregarDados = async () => {
+    setIsLoading(true);
+    try {
+      const [saidasRes, veiculosRes, motoristasRes] = await Promise.all([
+        fetch("http://localhost:8000/saidas"),
+        fetch("http://localhost:8000/veiculos"),
+        fetch("http://localhost:8000/motoristas"),
+      ]);
 
-  const carregarVeiculos = () => {
-    fetch("http://localhost:8000/veiculos")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Dados recebidos (veículos):", data); // Verifique a estrutura dos dados
-        setVeiculos(data);
-      })
-      .catch((err) => console.error("Erro ao buscar veículos", err));
-  };
+      if (!saidasRes.ok || !veiculosRes.ok || !motoristasRes.ok) {
+        throw new Error("Erro ao carregar dados");
+      }
 
-  const carregarMotoristas = () => {
-    fetch("http://localhost:8000/motoristas")
-      .then((res) => res.json())
-      .then(setMotoristas)
-      .catch((err) => console.error("Erro ao buscar motoristas", err));
+      const [saidasData, veiculosData, motoristasData] = await Promise.all([
+        saidasRes.json(),
+        veiculosRes.json(),
+        motoristasRes.json(),
+      ]);
+
+      setSaidas(saidasData);
+      setVeiculos(veiculosData);
+      setMotoristas(motoristasData);
+    } catch (error) {
+      console.error(error);
+      toast.error("Falha ao carregar dados");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    carregarSaidas();
-    carregarVeiculos();
-    carregarMotoristas();
+    carregarDados();
   }, []);
 
-  const cadastrarSaida = async (e: React.FormEvent) => {
+  const cadastrarSaida = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const novaSaida = {
-      id_veiculo: idVeiculo,
-      id_motorista: idMotorista,
-      usuario: 1, 
-      saida_prevista: saidaPrevista,
-      chegada_prevista: chegadaPrevista,
-      saida_real: saidaReal || null, // se vazio, será null
-      chegada_real: chegadaReal || null, // se vazio, será null
-      km_saida: km_saida === "" ? null : km_saida,
-      km_chegada: km_chegada === "" ? null : km_chegada,
-    };
+    try {
+      const novaSaida = {
+        id_veiculo: idVeiculo,
+        id_motorista: idMotorista,
+        id_usuario: 1,
+        saida_prevista: saidaPrevista,
+        chegada_prevista: chegadaPrevista,
+        saida_real: saidaReal || null,
+        chegada_real: chegadaReal || null,
+        km_saida: kmSaida || null,
+        km_chegada: kmChegada || null,
+      };
 
-    await fetch("http://localhost:8000/saidas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(novaSaida),
-    });
+      const response = await fetch("http://localhost:8000/saidas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(novaSaida),
+      });
 
-    // resetar campos
+      if (!response.ok) throw new Error("Erro ao cadastrar saída");
+
+      toast.success("Saída cadastrada com sucesso!");
+      resetarFormulario();
+      await carregarDados();
+    } catch (error) {
+      console.error(error);
+      toast.error("Falha ao cadastrar saída");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetarFormulario = () => {
     setIdVeiculo(undefined);
     setIdMotorista(undefined);
     setSaidaPrevista("");
@@ -148,135 +162,123 @@ export default function SaidasDashboard() {
     setChegadaReal("");
     setKmSaida("");
     setKmChegada("");
-    carregarSaidas();
+    setIsDialogOpen(false);
   };
+
+  const columns = [
+    {
+      header: "Nº",
+      accessor: (saida: Saida) => saida.idsaida,
+    },
+    {
+      header: "Veículo",
+      accessor: (saida: Saida) => `${saida.veiculo.modelo.toUpperCase()} - ${saida.veiculo.placa.toUpperCase()}`,
+    },
+    {
+      header: "Motorista",
+      accessor: (saida: Saida) => saida.motorista.nome.toUpperCase(),
+    },
+    {
+      header: "Saída Prevista",
+      accessor: (saida: Saida) => saida.saida_prevista,
+    },
+    {
+      header: "Chegada Prevista",
+      accessor: (saida: Saida) => saida.chegada_prevista,
+    },
+    {
+      header: "Ações",
+      accessor: (saida: Saida) => (
+        <Button onClick={() => gerarPDF(saida)}>Gerar PDF</Button>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-blue-900">Saídas Cadastradas</h1>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>Cadastrar Saída</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nova Saída</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={cadastrarSaida} className="space-y-4">
-              {/* Selecionar Veículo */}
-                <Select onValueChange={(value) => setIdVeiculo(Number(value))}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Selecione o Veículo" />
-                </SelectTrigger>
-                <SelectContent>
-                    {veiculos.map((veiculo) => (
-                    <SelectItem key={veiculo.idveiculo} value={veiculo.idveiculo.toString()}>
-                        {veiculo.modelo} - {veiculo.placa}
-                    </SelectItem>
-                    ))}
-                </SelectContent>
-                </Select>
+        <CrudDialog
+          triggerText="Cadastrar Saída"
+          title="Nova Saída"
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSubmit={cadastrarSaida}
+          isSubmitting={isSubmitting}
+        >
+          <LabeledSelect
+            label="Veículo"
+            options={veiculos.map(v => ({ 
+              value: v.idveiculo.toString(), 
+              label: `${v.modelo} - ${v.placa}` 
+            }))}
+            onChange={(value: string) => setIdVeiculo(Number(value))}
+            required={true}  // Now properly typed
+          />
 
-              {/* Selecionar Motorista */}
-              <Select onValueChange={(value) => setIdMotorista(Number(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o Motorista" />
-                </SelectTrigger>
-                <SelectContent>
-                  {motoristas.map((motorista) => (
-                    <SelectItem key={motorista.idmotorista} value={motorista.idmotorista.toString()}>
-                      {motorista.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-                {/* Campos de data e hora prevista */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Saída Prevista</label>
-                  <Input
-                    type="datetime-local"
-                    value={saidaPrevista}
-                    onChange={(e) => setSaidaPrevista(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Chegada Prevista</label>
-                  <Input
-                    type="datetime-local"
-                    value={chegadaPrevista}
-                    onChange={(e) => setChegadaPrevista(e.target.value)}
-                    required
-                  />
-                </div>
+          <LabeledSelect
+            label="Motorista"
+            options={motoristas.map(m => ({ 
+              value: m.idmotorista.toString(), 
+              label: m.nome 
+            }))}
+            onChange={(value: string) => setIdMotorista(Number(value))}
+            required={true}
+          />
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Saída Real </label>
-                  <Input
-                    type="datetime-local"
-                    value={saidaReal}
-                    onChange={(e) => setSaidaReal(e.target.value)}
-                  />
-                </div>
+          <LabeledInput
+            label="Saída Prevista"
+            type="datetime-local"
+            value={saidaPrevista}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSaidaPrevista(e.target.value)}
+            required
+          />
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Chegada Real </label>
-                  <Input
-                    type="datetime-local"
-                    value={chegadaReal}
-                    onChange={(e) => setChegadaReal(e.target.value)}
-                  />
-                </div>
+          <LabeledInput
+            label="Chegada Prevista"
+            type="datetime-local"
+            value={chegadaPrevista}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChegadaPrevista(e.target.value)}
+            required
+          />
 
-              <Input
-                type="number"
-                placeholder="KM de Saída"
-                value={km_saida}
-                onChange={(e) => setKmSaida(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="KM de Chegada"
-                value={km_chegada}
-                onChange={(e) => setKmChegada(e.target.value)}
-              />
+          <LabeledInput
+            label="Saída Real"
+            type="datetime-local"
+            value={saidaReal}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSaidaReal(e.target.value)}
+          />
 
-              <DialogFooter>
-                <Button type="submit">Cadastrar</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+          <LabeledInput
+            label="Chegada Real"
+            type="datetime-local"
+            value={chegadaReal}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChegadaReal(e.target.value)}
+          />
+
+          <Input
+            type="number"
+            placeholder="KM de Saída"
+            value={kmSaida}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKmSaida(e.target.value)}
+          />
+
+          <Input
+            type="number"
+            placeholder="KM de Chegada"
+            value={kmChegada}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKmChegada(e.target.value)}
+          />
+        </CrudDialog>
       </div>
 
-      {/* Tabela de saídas */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nº</TableHead>
-            <TableHead>Veículo</TableHead>
-            <TableHead>Motorista</TableHead>
-            <TableHead>Saída Prevista</TableHead>
-            <TableHead>Chegada Prevista</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {saidas.map((saida) => (
-            <TableRow key={saida.idsaida}>
-              <TableCell>{saida.idsaida}</TableCell>
-              <TableCell>{saida.veiculo.modelo.toUpperCase()} - {saida.veiculo.placa.toUpperCase()}</TableCell>
-              <TableCell>{saida.motorista.nome.toUpperCase()}</TableCell>
-              <TableCell>{saida.saida_prevista}</TableCell>
-              <TableCell>{saida.chegada_prevista}</TableCell>
-              <TableCell>
-                <Button onClick={() => gerarPDF(saida)}>Gerar PDF</Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable
+        data={saidas}
+        columns={columns}
+        isLoading={isLoading}
+        emptyMessage="Nenhuma saída cadastrada"
+      />
     </div>
   );
 }

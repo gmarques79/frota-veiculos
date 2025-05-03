@@ -1,24 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { DataTable } from "@/components/genericTable";
+import { CrudDialog } from "@/components/crudDialog";
+import { StatusBadge } from "@/components/statusBadge";
 import { Input } from "@/components/ui/input";
 
 export type Veiculo = {
@@ -34,100 +20,125 @@ export default function VeiculosDashboard() {
   const [modelo, setModelo] = useState("");
   const [placa, setPlaca] = useState("");
   const [marca, setMarca] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const carregarVeiculos = () => {
-    fetch("http://localhost:8000/veiculos")
-      .then((res) => res.json())
-      .then(setVeiculos)
-      .catch((err) => console.error("Erro ao buscar veículos", err));
+  const carregarVeiculos = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("http://localhost:8000/veiculos");
+      if (!response.ok) throw new Error("Erro ao buscar veículos");
+      const data = await response.json();
+      setVeiculos(data);
+    } catch (error) {
+      console.error(error);
+      toast.error("Não foi possível carregar os veículos");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     carregarVeiculos();
-  }, [])
+  }, []);
 
   const cadastrarVeiculo = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const novoVeiculo = {
-      modelo,
-      placa,
-      marca,
-      ativo: true,
-    };
+    try {
+      const novoVeiculo = {
+        modelo,
+        placa,
+        marca,
+        ativo: true,
+      };
 
-    await fetch("http://localhost:8000/veiculos", {
-      method: "POST",
-      headers: {"Content-Type": "application/json" },
-      body: JSON.stringify(novoVeiculo),
-    });
+      const response = await fetch("http://localhost:8000/veiculos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(novoVeiculo),
+      });
+      console.log("Dados recebidos:", novoVeiculo.ativo)
 
-    setModelo("");
-    setPlaca("");
-    setMarca("");
-    carregarVeiculos();
+      if (!response.ok) throw new Error("Erro ao cadastrar veículo");
+
+      toast.success("Veículo cadastrado com sucesso!");
+      setModelo("");
+      setPlaca("");
+      setMarca("");
+      setIsDialogOpen(false);
+      carregarVeiculos();
+    } catch (error) {
+      console.error(error);
+      toast.error("Falha ao cadastrar veículo");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const columns = [
+    {
+      header: "Modelo",
+      accessor: (veiculo: Veiculo) => veiculo.modelo.toUpperCase(),
+    },
+    {
+      header: "Placa",
+      accessor: (veiculo: Veiculo) => veiculo.placa.toUpperCase(),
+    },
+    {
+      header: "Marca",
+      accessor: (veiculo: Veiculo) => veiculo.marca.toUpperCase(),
+    },
+    {
+      header: "Status",
+      accessor: (veiculo: Veiculo) => (
+        <StatusBadge isActive={veiculo.ativo} />
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-blue-900">Veículos Cadastrados</h1>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>Cadastrar Veículo</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Novo Veículo</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={cadastrarVeiculo} className="space-y-4">
-              <Input
-                placeholder="Modelo"
-                value={modelo}
-                onChange={(e) => setModelo(e.target.value)}
-                required
-              />
-              <Input
-                placeholder="Placa"
-                value={placa}
-                onChange={(e) => setPlaca(e.target.value)}
-                required
-              />
-              <Input
-                placeholder="Marca"
-                value={marca}
-                onChange={(e) => setMarca(e.target.value)}
-                required
-              />
-              <DialogFooter>
-                <Button type="submit">Cadastrar</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <CrudDialog
+          triggerText="Cadastrar Veículo"
+          title="Novo Veículo"
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSubmit={cadastrarVeiculo}
+          isSubmitting={isSubmitting}
+        >
+          <Input
+            placeholder="Modelo"
+            value={modelo}
+            onChange={(e) => setModelo(e.target.value)}
+            required
+          />
+          <Input
+            placeholder="Placa"
+            value={placa}
+            onChange={(e) => setPlaca(e.target.value)}
+            required
+          />
+          <Input
+            placeholder="Marca"
+            value={marca}
+            onChange={(e) => setMarca(e.target.value)}
+            required
+          />
+        </CrudDialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Modelo</TableHead>
-            <TableHead>Placa</TableHead>
-            <TableHead>Marca</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {veiculos.map((veiculo) => (
-            <TableRow key={veiculo.idveiculo}>
-              <TableCell>{veiculo.modelo.toUpperCase()}</TableCell>
-              <TableCell>{veiculo.placa.toUpperCase()}</TableCell>
-              <TableCell>{veiculo.marca.toUpperCase()}</TableCell>
-              <TableCell>{veiculo.ativo ? "Inativo" : "Ativo"}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTable
+        data={veiculos}
+        columns={columns}
+        isLoading={isLoading}
+        emptyMessage="Nenhum veículo cadastrado"
+      />
     </div>
   );
 }
