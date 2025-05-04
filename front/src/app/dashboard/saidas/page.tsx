@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/genericTable";
 import { CrudDialog } from "@/components/crudDialog";
-import  LabeledInput  from "@/components/labeledinput";
-import  LabeledSelect  from "@/components/labeledSelect";
+import LabeledInput from "@/components/labeledinput";
+import LabeledSelect from "@/components/labeledSelect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
@@ -72,10 +72,11 @@ export default function SaidasDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   // estados para nova saída
-  const [idVeiculo, setIdVeiculo] = useState<number>();
-  const [idMotorista, setIdMotorista] = useState<number>();
+  const [idVeiculo, setIdVeiculo] = useState<string>();
+  const [idMotorista, setIdMotorista] = useState<string>();
   const [saidaPrevista, setSaidaPrevista] = useState("");
   const [chegadaPrevista, setChegadaPrevista] = useState("");
   const [saidaReal, setSaidaReal] = useState("");
@@ -117,41 +118,14 @@ export default function SaidasDashboard() {
     carregarDados();
   }, []);
 
-  const cadastrarSaida = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const novaSaida = {
-        id_veiculo: idVeiculo,
-        id_motorista: idMotorista,
-        id_usuario: 1,
-        saida_prevista: saidaPrevista,
-        chegada_prevista: chegadaPrevista,
-        saida_real: saidaReal || null,
-        chegada_real: chegadaReal || null,
-        km_saida: kmSaida || null,
-        km_chegada: kmChegada || null,
-      };
-
-      const response = await fetch("http://localhost:8000/saidas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(novaSaida),
-      });
-
-      if (!response.ok) throw new Error("Erro ao cadastrar saída");
-
-      toast.success("Saída cadastrada com sucesso!");
-      resetarFormulario();
-      await carregarDados();
-    } catch (error) {
-      console.error(error);
-      toast.error("Falha ao cadastrar saída");
-    } finally {
-      setIsSubmitting(false);
+  useEffect(() => {
+    if (isDialogOpen && editingId) {
+      const saida = saidas.find(s => s.idsaida === editingId);
+      if (saida) {
+        handleEdit(saida);
+      }
     }
-  };
+  }, [isDialogOpen, editingId, saidas]);
 
   const resetarFormulario = () => {
     setIdVeiculo(undefined);
@@ -162,7 +136,92 @@ export default function SaidasDashboard() {
     setChegadaReal("");
     setKmSaida("");
     setKmChegada("");
+    setEditingId(null);
     setIsDialogOpen(false);
+  };
+
+  const handleEdit = (saida: Saida) => {
+    console.log('Data raw (saída_prevista):', saida.saida_prevista);
+    setEditingId(saida.idsaida);
+    
+    // Preenche os campos do formulário
+    setIdVeiculo(String(saida.veiculo.idveiculo));
+    console.log("idVeiculo setado para:", saida.veiculo.idveiculo.toString());
+    setIdMotorista(String(saida.motorista.idmotorista));
+    console.log("idmotorista setado para:", saida.motorista.idmotorista.toString());
+    setSaidaPrevista(formatDateTimeForInput(saida.saida_prevista));
+    console.log('Data formatted (saída_prevista):', saida.saida_prevista);
+    setChegadaPrevista(formatDateTimeForInput(saida.chegada_prevista));
+    console.log("chegada prevista setado para:", saida.chegada_prevista.toString());
+    setSaidaReal(saida.saida_real ? formatDateTimeForInput(saida.saida_real) : '');
+    console.log("saida real setado para:", saida.saida_real?.toString());
+    setChegadaReal(saida.chegada_real ? formatDateTimeForInput(saida.chegada_real) : '');
+    console.log("chegada real setado para:", saida.chegada_real?.toString());
+    setKmSaida(saida.km_saida || '');
+    setKmChegada(saida.km_chegada || '');
+    
+    setIsDialogOpen(true);
+  };
+  // Função auxiliar para formatar datas para input datetime-local
+  const formatDateTimeForInput = (dateStr: string | null) => {
+    if (!dateStr) return "";
+    
+    // Garante que a data está no formato correto (YYYY-MM-DDTHH:MM)
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return ""; // Se data inválida
+    
+    // Formata para o padrão do datetime-local
+    const pad = (num: number) => num.toString().padStart(2, '0');
+    
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        id_veiculo: Number(idVeiculo),
+        id_motorista: Number(idMotorista),
+        id_usuario: 1,
+        saida_prevista: saidaPrevista,
+        chegada_prevista: chegadaPrevista,
+        saida_real: saidaReal || null,
+        chegada_real: chegadaReal || null,
+        km_saida: kmSaida || null,
+        km_chegada: kmChegada || null,
+      };
+
+      const url = editingId 
+        ? `http://localhost:8000/saidas/${editingId}`
+        : 'http://localhost:8000/saidas';
+
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error(editingId ? "Erro ao atualizar saída" : "Erro ao cadastrar saída");
+
+      toast.success(editingId ? "Saída atualizada com sucesso!" : "Saída cadastrada com sucesso!");
+      resetarFormulario();
+      await carregarDados();
+    } catch (error) {
+      console.error(error);
+      toast.error(editingId ? "Falha ao atualizar saída" : "Falha ao cadastrar saída");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const columns = [
@@ -189,10 +248,18 @@ export default function SaidasDashboard() {
     {
       header: "Ações",
       accessor: (saida: Saida) => (
-        <Button onClick={() => gerarPDF(saida)}>Gerar PDF</Button>
+        <div className="flex space-x-2">
+          <Button onClick={() => gerarPDF(saida)}>Gerar PDF</Button>
+          <Button variant="outline" onClick={() => handleEdit(saida)}>
+            Editar
+          </Button>
+        </div>
       ),
     },
   ];
+
+  console.log("Estado atual do idVeiculo:", idVeiculo);
+  console.log("Estado atual do idmotorista:", idMotorista);
 
   return (
     <div className="space-y-6 p-6">
@@ -200,31 +267,36 @@ export default function SaidasDashboard() {
         <h1 className="text-2xl font-bold text-blue-900">Saídas Cadastradas</h1>
 
         <CrudDialog
-          triggerText="Cadastrar Saída"
-          title="Nova Saída"
+          triggerText={editingId ? "Editar Saída" : "Cadastrar Saída"}
+          title={editingId ? "Editar Saída" : "Nova Saída"}
           isOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          onSubmit={cadastrarSaida}
+          onOpenChange={(open) => {
+            if (!open) resetarFormulario();
+            setIsDialogOpen(open);
+          }}
+          onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         >
           <LabeledSelect
             label="Veículo"
             options={veiculos.map(v => ({ 
               value: v.idveiculo.toString(), 
-              label: `${v.modelo} - ${v.placa}` 
+              label: `${v.modelo} - ${v.placa}`,
             }))}
-            onChange={(value: string) => setIdVeiculo(Number(value))}
-            required={true}  // Now properly typed
+            value={idVeiculo?.toString()}
+            onChange={(value: string) => setIdVeiculo((value))}
+            required
           />
-
+          
           <LabeledSelect
             label="Motorista"
             options={motoristas.map(m => ({ 
               value: m.idmotorista.toString(), 
-              label: m.nome 
+              label: m.nome,
             }))}
-            onChange={(value: string) => setIdMotorista(Number(value))}
-            required={true}
+            value={idMotorista?.toString()}
+            onChange={(value: string) => setIdMotorista((value))}
+            required
           />
 
           <LabeledInput
@@ -234,7 +306,6 @@ export default function SaidasDashboard() {
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSaidaPrevista(e.target.value)}
             required
           />
-
           <LabeledInput
             label="Chegada Prevista"
             type="datetime-local"
