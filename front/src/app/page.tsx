@@ -11,7 +11,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { signIn } from "next-auth/react";
 
 
 export default function Login() {

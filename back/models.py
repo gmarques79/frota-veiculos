@@ -39,6 +39,8 @@ class Saida(Base):
 
     saida_prevista = Column(TIMESTAMP)
     chegada_prevista = Column(TIMESTAMP)
+    autorizador = Column(String(20))
+    autorizado = Column(Boolean, default=False)
     saida_real = Column(TIMESTAMP)
     chegada_real = Column(TIMESTAMP)
     km_saida = Column(String(6))

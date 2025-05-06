@@ -146,6 +146,8 @@ def update_saida(db: Session, saida_id: int, saida_data: SaidaCreate):
         saida.id_usuario = saida_data.id_usuario
         saida.saida_prevista = saida_data.saida_prevista
         saida.chegada_prevista = saida_data.chegada_prevista
+        saida.autorizador = saida_data.autorizador
+        saida.autorizado = saida_data.autorizado
         saida.saida_real = saida_data.saida_real
         saida.chegada_real = saida_data.chegada_real
         saida.km_saida = saida_data.km_saida

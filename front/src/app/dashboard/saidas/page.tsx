@@ -25,11 +25,20 @@ type Saida = {
   };
   saida_prevista: string;
   chegada_prevista: string;
+  autorizador: string;
+  autorizado: boolean;
   saida_real: string | null;
   chegada_real: string | null;
   km_saida: string | null;
   km_chegada: string | null;
 };
+
+type Usuario = {
+  idusuario: number;
+  nome: string;
+  email: string;
+};
+
 
 const gerarPDF = (saida: Saida) => {
   const doc = new jsPDF();
@@ -59,6 +68,7 @@ const gerarPDF = (saida: Saida) => {
   linha("Usuário", `${saida.usuario.nome} (${saida.usuario.email})`);
   linha("Saída Prevista", saida.saida_prevista);
   linha("Chegada Prevista", saida.chegada_prevista);
+  linha("Autorizador", saida.autorizador);
   linha("Saída Real", saida.saida_real);
   linha("Chegada Real", saida.chegada_real);
 
@@ -69,6 +79,7 @@ export default function SaidasDashboard() {
   const [saidas, setSaidas] = useState<Saida[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [motoristas, setMotoristas] = useState<Condutor[]>([]);
+  const [ usuarios, setUsuarios ] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -79,6 +90,8 @@ export default function SaidasDashboard() {
   const [idMotorista, setIdMotorista] = useState<string>();
   const [saidaPrevista, setSaidaPrevista] = useState("");
   const [chegadaPrevista, setChegadaPrevista] = useState("");
+  const [ autorizador, setAutorizador] = useState("");
+  const [ autorizado, setAutorizado] = useState("");
   const [saidaReal, setSaidaReal] = useState("");
   const [chegadaReal, setChegadaReal] = useState("");
   const [kmSaida, setKmSaida] = useState("");
@@ -87,25 +100,28 @@ export default function SaidasDashboard() {
   const carregarDados = async () => {
     setIsLoading(true);
     try {
-      const [saidasRes, veiculosRes, motoristasRes] = await Promise.all([
+      const [saidasRes, veiculosRes, motoristasRes, usuarioRes] = await Promise.all([
         fetch("http://localhost:8000/saidas"),
         fetch("http://localhost:8000/veiculos"),
         fetch("http://localhost:8000/motoristas"),
+        fetch("http://localhost:8000/usuarios"),
       ]);
 
-      if (!saidasRes.ok || !veiculosRes.ok || !motoristasRes.ok) {
+      if (!saidasRes.ok || !veiculosRes.ok || !motoristasRes.ok || !usuarioRes.ok) {
         throw new Error("Erro ao carregar dados");
       }
 
-      const [saidasData, veiculosData, motoristasData] = await Promise.all([
+      const [saidasData, veiculosData, motoristasData, usuariosData] = await Promise.all([
         saidasRes.json(),
         veiculosRes.json(),
         motoristasRes.json(),
+        usuarioRes.json(),
       ]);
 
       setSaidas(saidasData);
       setVeiculos(veiculosData);
       setMotoristas(motoristasData);
+      setUsuarios(usuariosData);
     } catch (error) {
       console.error(error);
       toast.error("Falha ao carregar dados");
@@ -132,6 +148,8 @@ export default function SaidasDashboard() {
     setIdMotorista(undefined);
     setSaidaPrevista("");
     setChegadaPrevista("");
+    setAutorizador("");
+    setAutorizado("");
     setSaidaReal("");
     setChegadaReal("");
     setKmSaida("");
@@ -153,6 +171,10 @@ export default function SaidasDashboard() {
     console.log('Data formatted (saída_prevista):', saida.saida_prevista);
     setChegadaPrevista(formatDateTimeForInput(saida.chegada_prevista));
     console.log("chegada prevista setado para:", saida.chegada_prevista.toString());
+    setAutorizador(String(saida.autorizador));
+    console.log("Autorizador setado para:", saida.autorizador?.toString());
+    setAutorizado(saida.autorizado ? "true" : "false");
+    console.log("Autorizado setado para:", saida.autorizado?.toString());
     setSaidaReal(saida.saida_real ? formatDateTimeForInput(saida.saida_real) : '');
     console.log("saida real setado para:", saida.saida_real?.toString());
     setChegadaReal(saida.chegada_real ? formatDateTimeForInput(saida.chegada_real) : '');
@@ -193,6 +215,8 @@ export default function SaidasDashboard() {
         id_usuario: 1,
         saida_prevista: saidaPrevista,
         chegada_prevista: chegadaPrevista,
+        autorizador: autorizador,
+        autorizado: autorizado === "true",
         saida_real: saidaReal || null,
         chegada_real: chegadaReal || null,
         km_saida: kmSaida || null,
@@ -277,6 +301,7 @@ export default function SaidasDashboard() {
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         >
+          <div className="grid grid-cols-2 gap-4">
           <LabeledSelect
             label="Veículo"
             options={veiculos.map(v => ({ 
@@ -314,6 +339,28 @@ export default function SaidasDashboard() {
             required
           />
 
+          <LabeledSelect
+            label="Autorizador"
+            options={usuarios.map(u => ({ 
+              value: u.idusuario.toString(), 
+              label: u.nome,
+            }))}
+            value={autorizador}
+            onChange={(value: string) => setAutorizador(value)}
+            required
+          />
+
+          <LabeledSelect
+            label="Autorizado"
+            options={[
+              { value: "true", label: "Sim" },
+              { value: "false", label: "Não" },
+            ]}
+            value={autorizado}
+            onChange={(value: string) => setAutorizado(value)}
+            required
+          />
+
           <LabeledInput
             label="Saída Real"
             type="datetime-local"
@@ -341,9 +388,9 @@ export default function SaidasDashboard() {
             value={kmChegada}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKmChegada(e.target.value)}
           />
+          </div>
         </CrudDialog>
       </div>
-
       <DataTable
         data={saidas}
         columns={columns}

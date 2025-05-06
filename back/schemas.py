@@ -72,6 +72,8 @@ class SaidaCreate(BaseModel):
     id_usuario: int
     saida_prevista: datetime
     chegada_prevista: datetime
+    autorizador: str
+    autorizado: bool
     saida_real: Optional[datetime] = None
     chegada_real: Optional[datetime] = None
     km_saida: Optional[str] = None
@@ -88,6 +90,8 @@ class SaidaResponse(BaseModel):
     usuario: UsuarioResponse  
     saida_prevista: datetime
     chegada_prevista: datetime
+    autorizador: str
+    autorizado: bool
     saida_real: Optional[datetime] = None
     chegada_real: Optional[datetime] = None
     km_saida: Optional[str] = None

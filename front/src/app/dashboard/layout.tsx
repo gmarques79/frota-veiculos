@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner"
-import { motion } from "framer-motion"; // já vem pronto com shadcn
+import { motion } from "framer-motion"; 
 
 const menuItems = [
   { label: "Início", href: "/dashboard/home" },
@@ -17,6 +17,7 @@ const menuItems = [
   { label: "Veículos", href: "/dashboard/veiculos" },
   { label: "Condutores", href: "/dashboard/condutores" },
   { label: "Saídas", href: "/dashboard/saidas" },
+  { label: "Autorizações", href: "/dashboard/pendencias" },
 ];
 
 export default function DashboardLayout({
